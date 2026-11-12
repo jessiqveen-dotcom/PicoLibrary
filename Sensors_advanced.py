@@ -36,18 +36,17 @@ class UltrasonicSensor(Sensor):
         Returns:
             Distance in cm, or -1 if measurement fails
         """
-        # Send a 5us pulse to trigger
-        pulse_start = 0
-        pulse_end = 0
+        # Send a 10us pulse to trigger
         self._trigger.off()
         utime.sleep_us(2)
         self._trigger.on()
-        utime.sleep_us(5)
+        utime.sleep_us(10)
         self._trigger.off()
         
         # Wait for echo to go high (with timeout)
         timeout = 30000  # 30ms timeout
         start = utime.ticks_us()
+        pulse_start = start
         while self._echo.value() == 0:
             if utime.ticks_diff(utime.ticks_us(), start) > timeout:
                 return -1
@@ -55,6 +54,7 @@ class UltrasonicSensor(Sensor):
         
         # Wait for echo to go low (with timeout)
         start = utime.ticks_us()
+        pulse_end = pulse_start
         while self._echo.value() == 1:
             if utime.ticks_diff(utime.ticks_us(), start) > timeout:
                 return -1
@@ -72,6 +72,8 @@ class UltrasonicSensor(Sensor):
         """ sensor is tripped if distance is higher or lower than threshold """
         
         v = self.rawValue()
+        if v < 0:
+            return False
         if (self._lowActive and v < self._threshold) or (not self._lowActive and v > self._threshold):
             Log.i(f"UltrasonicSensor {self._name}: sensor tripped")
             return True

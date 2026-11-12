@@ -32,14 +32,15 @@ class Button:
             self._pin = Pin(pin, Pin.IN, Pin.PULL_DOWN)
         self._debounce_time = 0
         self._lowActive = lowActive
-        self._lastStatus = None
+        self._lastStatus = self._pin.value()
         self._handler = None
         self.setHandler(handler)
         
     def isPressed(self):
         """ Check if the button is pressed or not - useful if polling """
         
-        status = (self._lowActive and self._pin.value() ==0) or (not self._lowActive and self._pin.value() == 1)
+        v = self._pin.value()
+        status = (self._lowActive and v == 0) or (not self._lowActive and v == 1)
         Log.i(f'Button {self._name} isPressed: {status}')
         return status
     
@@ -63,11 +64,13 @@ class Button:
         
         t = time.ticks_ms()
         v = self._pin.value()
-        if ((self._lastStatus == None or self._lastStatus != v) and t-self._debounce_time) > 50:
-            self._debounce_time=t
+        if (self._lastStatus is None or self._lastStatus != v) and time.ticks_diff(t, self._debounce_time) > 50:
+            self._debounce_time = t
             self._lastStatus = v
             if self._handler is not None:
-                if self.isPressed():
+                pressed = (self._lowActive and v == 0) or (not self._lowActive and v == 1)
+                Log.i(f'Button {self._name} isPressed: {pressed}')
+                if pressed:
                     Log.i(f'Button {self._name} pressed')
                     self._handler.buttonPressed(self._name)
                 else:
